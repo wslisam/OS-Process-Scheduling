@@ -1,5 +1,30 @@
 # 🖥️ 作業系統進程排程教學工具 (OS Process Scheduling Simulator)
 
+Welcome to the OS Process Scheduling Simulator! This interactive tool is designed to help you visualize and understand how an Operating System decides which process gets to use the CPU. 
+
+## 🎯 What will you learn?
+By playing around with this tool, you'll be able to see exactly how different scheduling algorithms work in real-time. You'll learn:
+- **FCFS (First-Come, First-Served):** The simplest "supermarket queue" approach.
+- **SJF (Shortest Job First):** The mathematically optimal approach for reducing waiting time.
+- **RR (Round Robin):** The "fairness" approach used in modern operating systems to keep your computer responsive.
+
+## 🚀 How to use this tool
+
+1. **Pick a Scenario:** Start by choosing a mix of processes. 
+   - *Tip:* Try the **"Long to Short"** scenario with FCFS to see the **Convoy Effect** in action (where short processes get stuck behind a massive one).
+2. **Choose an Algorithm:** Select the scheduling rule the CPU will follow.
+3. **Set the Time Quantum (RR only):** If you chose Round Robin, decide how long each process gets to use the CPU before it's forced to take a break.
+4. **Hit Simulate!** Watch the Gantt Chart build itself step-by-step. 
+5. **Review the Math:** Once the simulation finishes, check the "Waiting Time Calculation" panel to see the exact formulas and math behind the scenes.
+
+## 🧠 Key Concepts to Look Out For
+- **Average Waiting Time:** Notice how SJF always gives you the lowest average waiting time compared to FCFS.
+- **Context Switching:** When using Round Robin, notice how the CPU jumps back and forth between processes. While this increases waiting time, it ensures no process is "starved" of attention for too long!
+
+Have fun exploring how your computer manages its brain!
+
+---
+
 歡迎來到作業系統 (OS) 進程排程的互動學習工具！這個工具旨在幫助你理解 CPU 是如何決定「誰先執行、誰後執行」的，並且讓你親眼看到不同演算法對系統效能（特別是等待時間）的影響。
 
 ## 🎯 為什麼我們需要排程 (Scheduling)？
@@ -45,3 +70,4 @@
 2. 選擇你想觀察的 **排程演算法 (Algorithm)**。
 3. 如果選擇 RR，可以調整 **時間片 (Time Quantum)**。
 4. 點擊 **「開始模擬 (Simulate)」**，觀察右側的甘特圖動畫與下方的數學計算過程！
+
