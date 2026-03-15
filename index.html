@@ -1,0 +1,643 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OS Process Scheduling | 作業系統進程排程</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap');
+        
+        body {
+            font-family: 'Nunito', sans-serif;
+            background-color: #f8fafc;
+        }
+
+        .gantt-block {
+            transition: all 0.3s ease;
+            animation: slideIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+            opacity: 0;
+            transform: translateY(-20px);
+        }
+
+        @keyframes slideIn {
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: #f1f5f9; 
+            border-radius: 10px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #cbd5e1; 
+            border-radius: 10px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8; 
+        }
+
+        .math-block {
+            background-color: #f8fafc;
+            border-left: 4px solid #3b82f6;
+            padding: 0.5rem 1rem;
+            margin-top: 0.5rem;
+            border-radius: 0 0.5rem 0.5rem 0;
+            font-family: monospace;
+            font-size: 0.9rem;
+        }
+    </style>
+</head>
+<body class="h-screen w-screen overflow-hidden flex flex-col text-slate-800">
+
+    <!-- Header -->
+    <header class="bg-white shadow-sm z-10 px-6 py-3 flex justify-between items-center shrink-0">
+        <div class="flex items-center gap-3">
+            <div class="bg-blue-500 text-white p-2 rounded-lg">
+                <i class="fas fa-microchip text-xl"></i>
+            </div>
+            <div>
+                <h1 class="text-xl font-bold leading-tight" id="title-en">OS Process Scheduling</h1>
+                <h2 class="text-sm text-slate-500 font-semibold" id="title-zh">作業系統進程排程教學工具</h2>
+            </div>
+        </div>
+        
+        <div class="flex items-center gap-4">
+            <div class="flex bg-slate-100 p-1 rounded-lg">
+                <button onclick="setLang('en')" id="btn-en" class="px-3 py-1 rounded-md text-sm font-bold bg-white shadow-sm text-blue-600 transition-colors">EN</button>
+                <button onclick="setLang('zh')" id="btn-zh" class="px-3 py-1 rounded-md text-sm font-bold text-slate-500 hover:text-slate-700 transition-colors">中文</button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="flex-1 flex overflow-hidden p-4 gap-4">
+        
+        <!-- Left Panel: Controls & Waiting Area -->
+        <aside class="w-1/3 flex flex-col gap-4 min-w-[300px]">
+            <!-- Controls -->
+            <div class="bg-white rounded-xl shadow-sm p-5 border border-slate-100 shrink-0">
+                
+                <label class="block text-sm font-bold text-slate-700 mb-1 lang-en">1. Select Scenario:</label>
+                <label class="block text-sm font-bold text-slate-700 mb-1 lang-zh hidden">1. 選擇情境 (觀察不同組合)：</label>
+                <select id="scenario-select" class="w-full p-2 border border-slate-300 rounded-lg mb-3 focus:ring-2 focus:ring-blue-500 outline-none text-sm font-semibold bg-slate-50">
+                    <option value="standard" class="lang-en">Standard Mix (Varied Burst Times)</option>
+                    <option value="standard" class="lang-zh hidden">標準混合 (不同執行時間)</option>
+                    <option value="descending" class="lang-en">Long to Short (Convoy Effect Demo)</option>
+                    <option value="descending" class="lang-zh hidden">長到短 (觀察護航效應)</option>
+                    <option value="ascending" class="lang-en">Short to Long (Ideal for FCFS)</option>
+                    <option value="ascending" class="lang-zh hidden">短到長 (FCFS的理想情況)</option>
+                    <option value="tie" class="lang-en">Edge Case: Same Burst Times</option>
+                    <option value="tie" class="lang-zh hidden">特殊情況：相同執行時間 (平局判定)</option>
+                </select>
+
+                <label class="block text-sm font-bold text-slate-700 mb-1 lang-en">2. Select Algorithm:</label>
+                <label class="block text-sm font-bold text-slate-700 mb-1 lang-zh hidden">2. 選擇排程演算法：</label>
+                <select id="algo-select" class="w-full p-2 border border-slate-300 rounded-lg mb-3 focus:ring-2 focus:ring-blue-500 outline-none text-sm font-semibold bg-slate-50">
+                    <option value="FCFS">First-Come, First-Served (FCFS) / 先到先得</option>
+                    <option value="SJF">Shortest Job First (SJF) / 最短作業優先</option>
+                    <option value="RR">Round Robin (RR) / 輪轉法</option>
+                </select>
+
+                <div id="tq-container" class="hidden mb-4">
+                    <label class="block text-sm font-bold text-slate-700 mb-1 lang-en">3. Time Quantum (for RR):</label>
+                    <label class="block text-sm font-bold text-slate-700 mb-1 lang-zh hidden">3. 時間片大小 (Time Quantum)：</label>
+                    <select id="tq-select" class="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm font-semibold bg-slate-50">
+                        <option value="2">2 ms</option>
+                        <option value="3">3 ms</option>
+                        <option value="4">4 ms</option>
+                        <option value="5">5 ms</option>
+                    </select>
+                </div>
+
+                <div class="flex gap-2 mt-4">
+                    <button onclick="playSimulation()" id="play-btn" class="flex-1 bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded-lg transition shadow-sm flex justify-center items-center gap-2">
+                        <i class="fas fa-play"></i> <span class="lang-en">Simulate</span><span class="lang-zh hidden">開始模擬</span>
+                    </button>
+                    <button onclick="resetSimulation()" class="flex-1 bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold py-2 px-4 rounded-lg transition shadow-sm flex justify-center items-center gap-2">
+                        <i class="fas fa-undo"></i> <span class="lang-en">Reset</span><span class="lang-zh hidden">重置</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Waiting Area -->
+            <div class="bg-white rounded-xl shadow-sm p-5 border border-slate-100 flex-1 flex flex-col min-h-0">
+                <div class="flex justify-between items-end mb-2">
+                    <h3 class="font-bold text-lg lang-en">Ready Queue</h3>
+                    <h3 class="font-bold text-lg lang-zh hidden">就緒隊列</h3>
+                    <span class="text-xs font-semibold px-2 py-1 bg-blue-100 text-blue-700 rounded-md lang-en">Arrival Time = 0 for all</span>
+                    <span class="text-xs font-semibold px-2 py-1 bg-blue-100 text-blue-700 rounded-md lang-zh hidden">所有進程到達時間 = 0</span>
+                </div>
+                
+                <div id="waiting-area" class="flex-1 overflow-y-auto custom-scrollbar flex flex-col gap-3 pr-2 mt-2">
+                    <!-- Processes injected here -->
+                </div>
+            </div>
+        </aside>
+
+        <!-- Right Panel: Gantt Chart, Calculations & Explanation -->
+        <section class="w-2/3 flex flex-col gap-4">
+            
+            <!-- Top Half: Visuals -->
+            <div class="flex flex-col gap-4 shrink-0">
+                <!-- Gantt Chart Area -->
+                <div class="bg-white rounded-xl shadow-sm p-5 border border-slate-100">
+                    <h3 class="font-bold text-lg mb-3 flex items-center gap-2">
+                        <i class="fas fa-stream text-blue-500"></i>
+                        <span class="lang-en">Gantt Chart (CPU Execution Timeline)</span>
+                        <span class="lang-zh hidden">甘特圖 (CPU 執行時間軸)</span>
+                    </h3>
+                    
+                    <!-- Timeline Container -->
+                    <div class="relative w-full h-20 bg-slate-50 border-2 border-dashed border-slate-200 rounded-lg flex items-center p-2 overflow-x-auto custom-scrollbar" id="gantt-container">
+                        <div id="gantt-placeholder" class="absolute inset-0 flex items-center justify-center text-slate-400 font-semibold">
+                            <span class="lang-en">Press Simulate to generate Gantt Chart...</span>
+                            <span class="lang-zh hidden">按下開始模擬以生成甘特圖...</span>
+                        </div>
+                    </div>
+                    
+                    <!-- Time Axis -->
+                    <div id="time-axis" class="flex text-xs text-slate-500 font-bold mt-1 relative h-6 w-full overflow-x-auto custom-scrollbar">
+                        <!-- Ticks injected here -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Bottom Half: Stats & Explanations -->
+            <div class="flex-1 flex gap-4 min-h-0">
+                
+                <!-- Calculation Breakdown -->
+                <div class="w-1/2 bg-white rounded-xl shadow-sm p-5 border border-slate-100 flex flex-col overflow-hidden">
+                    <h3 class="font-bold text-lg mb-3 flex items-center gap-2 text-slate-700">
+                        <i class="fas fa-calculator text-indigo-500"></i>
+                        <span class="lang-en">Waiting Time Calculation</span>
+                        <span class="lang-zh hidden">等待時間計算過程</span>
+                    </h3>
+                    
+                    <div class="flex-1 overflow-y-auto custom-scrollbar pr-2" id="calc-breakdown">
+                        <div class="h-full flex flex-col items-center justify-center text-slate-400 text-center p-4">
+                            <i class="fas fa-info-circle text-3xl mb-2 opacity-50"></i>
+                            <p class="text-sm lang-en">Run the simulation to see step-by-step calculations.</p>
+                            <p class="text-sm lang-zh hidden">執行模擬以查看逐步計算過程。</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Concept Explanation -->
+                <div class="w-1/2 bg-blue-50 rounded-xl shadow-sm p-5 border border-blue-100 overflow-y-auto custom-scrollbar relative">
+                    <div class="absolute top-0 left-0 w-1 h-full bg-blue-400 rounded-l-xl"></div>
+                    <h4 class="font-bold text-lg text-blue-800 mb-3 flex items-center gap-2">
+                        <i class="fas fa-lightbulb text-yellow-500"></i>
+                        <span class="lang-en">Concept & Analysis</span>
+                        <span class="lang-zh hidden">概念與分析</span>
+                    </h4>
+                    <div id="explanation-content" class="text-slate-700 text-sm leading-relaxed space-y-4">
+                        <!-- Content injected based on selection -->
+                    </div>
+                </div>
+            </div>
+            
+        </section>
+    </main>
+
+    <script>
+        // --- State Management ---
+        let currentLang = 'en';
+        let isAnimating = false;
+        
+        // Scenarios
+        const scenarios = {
+            standard: [
+                { id: 'P1', burst: 6, color: 'bg-red-400', border: 'border-red-500', text: 'text-red-900' },
+                { id: 'P2', burst: 3, color: 'bg-amber-400', border: 'border-amber-500', text: 'text-amber-900' },
+                { id: 'P3', burst: 7, color: 'bg-emerald-400', border: 'border-emerald-500', text: 'text-emerald-900' },
+                { id: 'P4', burst: 2, color: 'bg-purple-400', border: 'border-purple-500', text: 'text-purple-900' }
+            ],
+            descending: [
+                { id: 'P1', burst: 8, color: 'bg-red-400', border: 'border-red-500', text: 'text-red-900' },
+                { id: 'P2', burst: 6, color: 'bg-amber-400', border: 'border-amber-500', text: 'text-amber-900' },
+                { id: 'P3', burst: 4, color: 'bg-emerald-400', border: 'border-emerald-500', text: 'text-emerald-900' },
+                { id: 'P4', burst: 2, color: 'bg-purple-400', border: 'border-purple-500', text: 'text-purple-900' }
+            ],
+            ascending: [
+                { id: 'P1', burst: 2, color: 'bg-red-400', border: 'border-red-500', text: 'text-red-900' },
+                { id: 'P2', burst: 4, color: 'bg-amber-400', border: 'border-amber-500', text: 'text-amber-900' },
+                { id: 'P3', burst: 6, color: 'bg-emerald-400', border: 'border-emerald-500', text: 'text-emerald-900' },
+                { id: 'P4', burst: 8, color: 'bg-purple-400', border: 'border-purple-500', text: 'text-purple-900' }
+            ],
+            tie: [
+                { id: 'P1', burst: 4, color: 'bg-red-400', border: 'border-red-500', text: 'text-red-900' },
+                { id: 'P2', burst: 4, color: 'bg-amber-400', border: 'border-amber-500', text: 'text-amber-900' },
+                { id: 'P3', burst: 4, color: 'bg-emerald-400', border: 'border-emerald-500', text: 'text-emerald-900' }
+            ]
+        };
+
+        let currentProcesses = [...scenarios.standard];
+
+        // Educational Content
+        const explanations = {
+            'FCFS': {
+                en: `
+                    <div>
+                        <strong class="text-blue-900 text-base">The "Supermarket Checkout" Approach</strong>
+                        <p class="mt-1">First-Come, First-Served (FCFS) processes jobs exactly in the order they arrive. It is non-preemptive.</p>
+                    </div>
+                    <div class="bg-white p-3 rounded border border-slate-200">
+                        <strong class="text-red-600"><i class="fas fa-exclamation-triangle"></i> The Convoy Effect (Why it matters)</strong>
+                        <p class="mt-1 text-xs">Try the "Long to Short" scenario. See how P4 (2ms) waits a long time because P1 (8ms) is blocking the CPU? This is the Convoy Effect. Short processes getting stuck behind long ones drastically increases the Average Waiting Time.</p>
+                    </div>
+                    <div>
+                        <strong class="text-slate-800">Tie-Breaking (Why P1 first?):</strong>
+                        <p class="mt-1 text-xs">Since all processes arrive at Time = 0, the OS needs a rule to break the tie. By default, it uses the Process ID (P1 < P2 < P3).</p>
+                    </div>
+                `,
+                zh: `
+                    <div>
+                        <strong class="text-blue-900 text-base">「超市收銀台」模式</strong>
+                        <p class="mt-1">先到先得 (FCFS) 完全按照進程到達的順序處理。它是非搶佔式的（一旦開始就不能中斷）。</p>
+                    </div>
+                    <div class="bg-white p-3 rounded border border-slate-200">
+                        <strong class="text-red-600"><i class="fas fa-exclamation-triangle"></i> 護航效應 Convoy Effect (為什麼這很重要？)</strong>
+                        <p class="mt-1 text-xs">請嘗試切換到「長到短」情境。你會發現只需要 2ms 的 P4 被迫等待極長的時間，因為 P1 佔據了 CPU。這就是護航效應：短作業被長作業卡住，導致整體的「平均等待時間」大幅飆升。</p>
+                    </div>
+                    <div>
+                        <strong class="text-slate-800">平局判定 (為什麼 P1 比 P2 早執行？)：</strong>
+                        <p class="mt-1 text-xs">在我們的設定中，所有進程都在時間 0 到達。當條件完全相同時，作業系統必須有一個標準來打破平局 (Tie-breaking)。通常系統會退而求其次，直接比較進程的 ID (P1 < P2 < P3) 來決定先後順序。</p>
+                    </div>
+                `
+            },
+            'SJF': {
+                en: `
+                    <div>
+                        <strong class="text-blue-900 text-base">The "Express Lane" Approach</strong>
+                        <p class="mt-1">Shortest Job First (SJF) always picks the process with the smallest burst time next.</p>
+                    </div>
+                    <div class="bg-white p-3 rounded border border-slate-200">
+                        <strong class="text-green-600"><i class="fas fa-check-circle"></i> Mathematical Optimality</strong>
+                        <p class="mt-1 text-xs">SJF guarantees the <strong>minimum average waiting time</strong>. By getting short jobs out of the way quickly, fewer processes are left waiting in the queue overall.</p>
+                    </div>
+                    <div class="bg-white p-3 rounded border border-slate-200 mt-2">
+                        <strong class="text-red-600"><i class="fas fa-exclamation-triangle"></i> Starvation & Ties</strong>
+                        <p class="mt-1 text-xs"><strong>Starvation:</strong> If short jobs keep arriving, a long job might wait forever.<br><strong>Ties:</strong> If burst times are identical (try the Edge Case), SJF cannot decide based on time, so it falls back to FCFS (using Process ID).</p>
+                    </div>
+                `,
+                zh: `
+                    <div>
+                        <strong class="text-blue-900 text-base">「特快通道」模式</strong>
+                        <p class="mt-1">最短作業優先 (SJF) 會檢查就緒隊列，並優先選擇執行時間最短的進程。</p>
+                    </div>
+                    <div class="bg-white p-3 rounded border border-slate-200">
+                        <strong class="text-green-600"><i class="fas fa-check-circle"></i> 數學上的最佳解 (Why SJF?)</strong>
+                        <p class="mt-1 text-xs">SJF 在數學上保證了<strong>最短的平均等待時間</strong>。因為它讓短作業先走，這意味著整體留在隊列中「正在等待」的進程數量會快速減少，從而降低總等待時間。</p>
+                    </div>
+                    <div class="bg-white p-3 rounded border border-slate-200 mt-2">
+                        <strong class="text-red-600"><i class="fas fa-exclamation-triangle"></i> 飢餓現象與平局</strong>
+                        <p class="mt-1 text-xs"><strong>飢餓 (Starvation)：</strong>如果短作業不斷到達，長作業可能永遠等不到 CPU。<br><strong>平局判定：</strong>如果執行時間相同（請嘗試特殊情況情境），SJF 無法用時間區分，就會退化成 FCFS，依靠進程 ID (P1, P2) 來決定順序。</p>
+                    </div>
+                `
+            },
+            'RR': {
+                en: `
+                    <div>
+                        <strong class="text-blue-900 text-base">The "Taking Turns" Approach</strong>
+                        <p class="mt-1">Round Robin (RR) gives every process a fixed time slice (Time Quantum). If a process isn't finished, it's paused and moved to the back of the queue.</p>
+                    </div>
+                    <div class="bg-white p-3 rounded border border-slate-200">
+                        <strong class="text-blue-600"><i class="fas fa-balance-scale"></i> Fairness over Speed</strong>
+                        <p class="mt-1 text-xs">RR usually has a <em>higher</em> Average Waiting Time than SJF, but it guarantees <strong>Responsiveness</strong>. No process waits too long to start. This is how modern desktop OS keep UI responsive.</p>
+                    </div>
+                    <div>
+                        <strong class="text-slate-800">The Quantum Dilemma (Try changing it!):</strong>
+                        <p class="mt-1 text-xs">If Time Quantum is too large, RR becomes FCFS. If it's too small, the CPU spends all its time switching between tasks (Context Switch Overhead) instead of doing actual work.</p>
+                    </div>
+                `,
+                zh: `
+                    <div>
+                        <strong class="text-blue-900 text-base">「大家輪流玩」模式</strong>
+                        <p class="mt-1">輪轉法 (RR) 給予每個進程一個固定的時間片 (Time Quantum)。如果進程在時間內沒做完，它會被強制暫停（搶佔）並排到隊伍最後面。</p>
+                    </div>
+                    <div class="bg-white p-3 rounded border border-slate-200">
+                        <strong class="text-blue-600"><i class="fas fa-balance-scale"></i> 公平重於速度 (Why RR?)</strong>
+                        <p class="mt-1 text-xs">RR 的平均等待時間通常比 SJF 差，但它保證了<strong>高響應性 (Responsiveness)</strong>。每個進程都能很快得到第一次 CPU 資源。這就是為什麼你的電腦在背景下載大檔案時，滑鼠和鍵盤依然能順暢反應的原因。</p>
+                    </div>
+                    <div>
+                        <strong class="text-slate-800">時間片的兩難 (請嘗試更改 Time Quantum！)：</strong>
+                        <p class="mt-1 text-xs">如果時間片設得太大，RR 就會退化成 FCFS。如果設得太小，CPU 會把時間都浪費在「切換任務 (Context Switch)」上，而不是真正在執行程式。</p>
+                    </div>
+                `
+            }
+        };
+
+        // --- Core Logic ---
+
+        function init() {
+            renderWaitingArea();
+            updateExplanation();
+            
+            document.getElementById('algo-select').addEventListener('change', (e) => {
+                const tqContainer = document.getElementById('tq-container');
+                if (e.target.value === 'RR') {
+                    tqContainer.classList.remove('hidden');
+                } else {
+                    tqContainer.classList.add('hidden');
+                }
+                resetSimulation();
+                updateExplanation();
+            });
+
+            document.getElementById('tq-select').addEventListener('change', () => {
+                resetSimulation();
+            });
+
+            document.getElementById('scenario-select').addEventListener('change', (e) => {
+                currentProcesses = [...scenarios[e.target.value]];
+                resetSimulation();
+                renderWaitingArea();
+            });
+        }
+
+        function setLang(lang) {
+            currentLang = lang;
+            
+            document.getElementById('btn-en').className = lang === 'en' ? 'px-3 py-1 rounded-md text-sm font-bold bg-white shadow-sm text-blue-600' : 'px-3 py-1 rounded-md text-sm font-bold text-slate-500 hover:text-slate-700';
+            document.getElementById('btn-zh').className = lang === 'zh' ? 'px-3 py-1 rounded-md text-sm font-bold bg-white shadow-sm text-blue-600' : 'px-3 py-1 rounded-md text-sm font-bold text-slate-500 hover:text-slate-700';
+
+            document.querySelectorAll('.lang-en').forEach(el => el.classList.toggle('hidden', lang !== 'en'));
+            document.querySelectorAll('.lang-zh').forEach(el => el.classList.toggle('hidden', lang !== 'zh'));
+            
+            updateExplanation();
+            renderWaitingArea();
+            
+            if(!document.getElementById('gantt-placeholder')) {
+                resetSimulation();
+            }
+        }
+
+        function updateExplanation() {
+            const algo = document.getElementById('algo-select').value;
+            document.getElementById('explanation-content').innerHTML = explanations[algo][currentLang];
+        }
+
+        function renderWaitingArea() {
+            const container = document.getElementById('waiting-area');
+            container.innerHTML = '';
+            
+            const maxBurst = Math.max(...currentProcesses.map(p => p.burst));
+
+            currentProcesses.forEach(p => {
+                const div = document.createElement('div');
+                div.className = `flex items-center p-2 rounded-lg border-2 ${p.border} bg-white shadow-sm`;
+                
+                const burstText = currentLang === 'en' ? `Burst: ${p.burst}ms` : `執行時間: ${p.burst}ms`;
+                
+                div.innerHTML = `
+                    <div class="w-10 h-10 rounded-md ${p.color} flex items-center justify-center font-black text-white shadow-inner shrink-0">
+                        ${p.id}
+                    </div>
+                    <div class="ml-3 flex-1">
+                        <div class="font-bold text-slate-700 text-sm">${p.id}</div>
+                        <div class="text-xs text-slate-500">${burstText}</div>
+                    </div>
+                    <div class="w-20 h-3 bg-slate-100 rounded-full overflow-hidden">
+                        <div class="h-full ${p.color}" style="width: ${(p.burst / maxBurst) * 100}%"></div>
+                    </div>
+                `;
+                container.appendChild(div);
+            });
+        }
+
+        function calculateSchedule(algo) {
+            let schedule = [];
+            let waitingTimes = {};
+            let turnaroundTimes = {};
+            let startTimes = {}; // For FCFS/SJF
+            let completionTimes = {};
+            
+            currentProcesses.forEach(p => waitingTimes[p.id] = 0);
+            let currentTime = 0;
+            
+            let processes = JSON.parse(JSON.stringify(currentProcesses));
+
+            if (algo === 'FCFS') {
+                processes.forEach(p => {
+                    startTimes[p.id] = currentTime;
+                    waitingTimes[p.id] = currentTime; // WT = Start - 0
+                    schedule.push({ ...p, start: currentTime, duration: p.burst });
+                    currentTime += p.burst;
+                });
+            } 
+            else if (algo === 'SJF') {
+                // Sort by burst time. JS sort is stable, so original order (P1, P2) is kept on tie.
+                processes.sort((a, b) => a.burst - b.burst);
+                processes.forEach(p => {
+                    startTimes[p.id] = currentTime;
+                    waitingTimes[p.id] = currentTime;
+                    schedule.push({ ...p, start: currentTime, duration: p.burst });
+                    currentTime += p.burst;
+                });
+            } 
+            else if (algo === 'RR') {
+                const tq = parseInt(document.getElementById('tq-select').value);
+                let queue = [...processes];
+                let remainingBurst = {};
+                processes.forEach(p => remainingBurst[p.id] = p.burst);
+
+                while (queue.length > 0) {
+                    let p = queue.shift();
+                    let execTime = Math.min(tq, remainingBurst[p.id]);
+                    
+                    schedule.push({ ...p, start: currentTime, duration: execTime });
+                    currentTime += execTime;
+                    remainingBurst[p.id] -= execTime;
+
+                    if (remainingBurst[p.id] > 0) {
+                        queue.push(p);
+                    } else {
+                        completionTimes[p.id] = currentTime;
+                    }
+                }
+
+                processes.forEach(p => {
+                    turnaroundTimes[p.id] = completionTimes[p.id]; 
+                    waitingTimes[p.id] = turnaroundTimes[p.id] - p.burst;
+                });
+            }
+
+            let totalWT = Object.values(waitingTimes).reduce((a, b) => a + b, 0);
+            let avgWT = (totalWT / processes.length).toFixed(2);
+
+            return { schedule, waitingTimes, avgWT, totalTime: currentTime, processes, startTimes, completionTimes };
+        }
+
+        function renderCalculations(calcData, algo) {
+            const { waitingTimes, avgWT, processes, startTimes, completionTimes } = calcData;
+            const calcContainer = document.getElementById('calc-breakdown');
+            calcContainer.innerHTML = '';
+
+            const wtLabel = currentLang === 'en' ? 'Waiting Time' : '等待時間';
+            
+            let html = `<div class="space-y-3">`;
+
+            if (algo === 'RR') {
+                html += `
+                    <div class="text-xs text-slate-600 mb-2 pb-2 border-b border-slate-200 bg-slate-50 p-2 rounded">
+                        <strong>${currentLang === 'en' ? 'Formula' : '計算公式'} (Round Robin):</strong><br>
+                        \( WT = Completion Time - Arrival Time - Burst Time \)
+                        <br><span class="text-slate-400">* Arrival Time = 0</span>
+                    </div>
+                `;
+                
+                processes.forEach(p => {
+                    const wt = waitingTimes[p.id];
+                    const ct = completionTimes[p.id];
+                    const bt = p.burst;
+                    html += `
+                        <div class="flex flex-col text-sm mb-2 border-b border-slate-100 pb-1">
+                            <div class="flex items-center gap-2 mb-1">
+                                <span class="w-3 h-3 rounded-full ${p.color}"></span>
+                                <span class="font-bold text-slate-700">${p.id} ${wtLabel}:</span>
+                            </div>
+                            <div class="text-slate-500 font-mono pl-5 text-xs">
+                                \( ${ct} - 0 - ${bt} = \)<span class="font-bold text-slate-800 bg-slate-100 px-1 rounded ml-1">${wt} ms</span>
+                            </div>
+                        </div>
+                    `;
+                });
+            } else {
+                html += `
+                    <div class="text-xs text-slate-600 mb-2 pb-2 border-b border-slate-200 bg-slate-50 p-2 rounded">
+                        <strong>${currentLang === 'en' ? 'Formula' : '計算公式'} (Non-Preemptive):</strong><br>
+                        \( WT = Start Time - Arrival Time \)
+                        <br><span class="text-slate-400">* Arrival Time = 0</span>
+                    </div>
+                `;
+                
+                processes.forEach(p => {
+                    const wt = waitingTimes[p.id];
+                    const st = startTimes[p.id];
+                    html += `
+                        <div class="flex flex-col text-sm mb-2 border-b border-slate-100 pb-1">
+                            <div class="flex items-center gap-2 mb-1">
+                                <span class="w-3 h-3 rounded-full ${p.color}"></span>
+                                <span class="font-bold text-slate-700">${p.id} ${wtLabel}:</span>
+                            </div>
+                            <div class="text-slate-500 font-mono pl-5 text-xs">
+                                \( ${st} - 0 = \)<span class="font-bold text-slate-800 bg-slate-100 px-1 rounded ml-1">${wt} ms</span>
+                            </div>
+                        </div>
+                    `;
+                });
+            }
+
+            // Average Calculation
+            let sumString = processes.map(p => waitingTimes[p.id]).join(' + ');
+            const n = processes.length;
+            const avgLabel = currentLang === 'en' ? 'Average Waiting Time' : '平均等待時間';
+
+            html += `
+                <div class="mt-4 pt-3 border-t-2 border-dashed border-slate-200">
+                    <div class="font-bold text-slate-700 mb-1">${avgLabel}:</div>
+                    <div class="math-block">
+                        \( \\frac{${sumString}}{${n}} \)<br>
+                        = <span class="text-blue-600 font-bold text-lg">${avgWT} ms</span>
+                    </div>
+                </div>
+            </div>`;
+
+            calcContainer.innerHTML = html;
+        }
+
+        async function playSimulation() {
+            if (isAnimating) return;
+            isAnimating = true;
+            
+            const btn = document.getElementById('play-btn');
+            btn.classList.add('opacity-50', 'cursor-not-allowed');
+
+            const algo = document.getElementById('algo-select').value;
+            const calcData = calculateSchedule(algo);
+            const { schedule, totalTime } = calcData;
+
+            const container = document.getElementById('gantt-container');
+            const placeholder = document.getElementById('gantt-placeholder');
+            const timeAxis = document.getElementById('time-axis');
+            
+            container.innerHTML = '';
+            timeAxis.innerHTML = '';
+            if (placeholder) placeholder.style.display = 'none';
+
+            document.getElementById('calc-breakdown').innerHTML = `
+                <div class="h-full flex items-center justify-center text-slate-400">
+                    <i class="fas fa-spinner fa-spin text-2xl"></i>
+                </div>
+            `;
+
+            const containerWidth = container.clientWidth - 16;
+            const pxPerUnit = Math.max(30, containerWidth / totalTime); 
+
+            for (let i = 0; i <= totalTime; i++) {
+                const tick = document.createElement('div');
+                tick.className = 'absolute top-0 border-l border-slate-300 pl-1 h-full';
+                tick.style.left = `${i * pxPerUnit}px`;
+                tick.innerHTML = `<span class="bg-white px-1">${i}</span>`;
+                timeAxis.appendChild(tick);
+            }
+
+            for (let i = 0; i < schedule.length; i++) {
+                const block = schedule[i];
+                const div = document.createElement('div');
+                
+                div.className = `gantt-block h-full ${block.color} ${block.border} border-2 rounded-md flex flex-col items-center justify-center font-bold text-white shadow-sm relative shrink-0 mx-[1px] overflow-hidden`;
+                div.style.width = `${block.duration * pxPerUnit - 2}px`; 
+                
+                div.innerHTML = `<span class="z-10 text-sm">${block.id}</span>`;
+
+                container.appendChild(div);
+                
+                container.scrollLeft = container.scrollWidth;
+                timeAxis.scrollLeft = container.scrollWidth;
+
+                await new Promise(r => setTimeout(r, algo === 'RR' ? 300 : 500));
+            }
+
+            container.addEventListener('scroll', () => {
+                timeAxis.scrollLeft = container.scrollLeft;
+            });
+
+            renderCalculations(calcData, algo);
+            
+            isAnimating = false;
+            btn.classList.remove('opacity-50', 'cursor-not-allowed');
+        }
+
+        function resetSimulation() {
+            if (isAnimating) return;
+            document.getElementById('gantt-container').innerHTML = `
+                <div id="gantt-placeholder" class="absolute inset-0 flex items-center justify-center text-slate-400 font-semibold">
+                    <span class="lang-en ${currentLang === 'en' ? '' : 'hidden'}">Press Simulate to generate Gantt Chart...</span>
+                    <span class="lang-zh ${currentLang === 'zh' ? '' : 'hidden'}">按下開始模擬以生成甘特圖...</span>
+                </div>
+            `;
+            document.getElementById('time-axis').innerHTML = '';
+            
+            document.getElementById('calc-breakdown').innerHTML = `
+                <div class="h-full flex flex-col items-center justify-center text-slate-400 text-center p-4">
+                    <i class="fas fa-info-circle text-3xl mb-2 opacity-50"></i>
+                    <p class="text-sm lang-en ${currentLang === 'en' ? '' : 'hidden'}">Run the simulation to see step-by-step calculations.</p>
+                    <p class="text-sm lang-zh ${currentLang === 'zh' ? '' : 'hidden'}">執行模擬以查看逐步計算過程。</p>
+                </div>
+            `;
+        }
+
+        window.onload = init;
+
+    </script>
+</body>
+</html>
