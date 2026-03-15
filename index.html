@@ -6,6 +6,18 @@
     <title>OS Process Scheduling | 作業系統進程排程</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    
+    <!-- Added MathJax for proper mathematical formula rendering -->
+    <script>
+        window.MathJax = {
+            tex: {
+                inlineMath: [['\\(', '\\)']],
+                displayMath: [['\\[', '\\]']]
+            }
+        };
+    </script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js"></script>
+
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap');
         
@@ -47,11 +59,10 @@
         .math-block {
             background-color: #f8fafc;
             border-left: 4px solid #3b82f6;
-            padding: 0.5rem 1rem;
+            padding: 1rem;
             margin-top: 0.5rem;
             border-radius: 0 0.5rem 0.5rem 0;
-            font-family: monospace;
-            font-size: 0.9rem;
+            font-size: 1.1rem;
         }
     </style>
 </head>
@@ -70,6 +81,7 @@
         </div>
         
         <div class="flex items-center gap-4">
+            <span class="text-xs text-slate-400 font-semibold">Created by Sam Li</span>
             <div class="flex bg-slate-100 p-1 rounded-lg">
                 <button onclick="setLang('en')" id="btn-en" class="px-3 py-1 rounded-md text-sm font-bold bg-white shadow-sm text-blue-600 transition-colors">EN</button>
                 <button onclick="setLang('zh')" id="btn-zh" class="px-3 py-1 rounded-md text-sm font-bold text-slate-500 hover:text-slate-700 transition-colors">中文</button>
@@ -366,8 +378,8 @@
         function setLang(lang) {
             currentLang = lang;
             
-            document.getElementById('btn-en').className = lang === 'en' ? 'px-3 py-1 rounded-md text-sm font-bold bg-white shadow-sm text-blue-600' : 'px-3 py-1 rounded-md text-sm font-bold text-slate-500 hover:text-slate-700';
-            document.getElementById('btn-zh').className = lang === 'zh' ? 'px-3 py-1 rounded-md text-sm font-bold bg-white shadow-sm text-blue-600' : 'px-3 py-1 rounded-md text-sm font-bold text-slate-500 hover:text-slate-700';
+            document.getElementById('btn-en').className = lang === 'en' ? 'px-3 py-1 rounded-md text-sm font-bold bg-white shadow-sm text-blue-600 transition-colors' : 'px-3 py-1 rounded-md text-sm font-bold text-slate-500 hover:text-slate-700 transition-colors';
+            document.getElementById('btn-zh').className = lang === 'zh' ? 'px-3 py-1 rounded-md text-sm font-bold bg-white shadow-sm text-blue-600 transition-colors' : 'px-3 py-1 rounded-md text-sm font-bold text-slate-500 hover:text-slate-700 transition-colors';
 
             document.querySelectorAll('.lang-en').forEach(el => el.classList.toggle('hidden', lang !== 'en'));
             document.querySelectorAll('.lang-zh').forEach(el => el.classList.toggle('hidden', lang !== 'zh'));
@@ -417,7 +429,7 @@
             let schedule = [];
             let waitingTimes = {};
             let turnaroundTimes = {};
-            let startTimes = {}; // For FCFS/SJF
+            let startTimes = {}; 
             let completionTimes = {};
             
             currentProcesses.forEach(p => waitingTimes[p.id] = 0);
@@ -428,13 +440,12 @@
             if (algo === 'FCFS') {
                 processes.forEach(p => {
                     startTimes[p.id] = currentTime;
-                    waitingTimes[p.id] = currentTime; // WT = Start - 0
+                    waitingTimes[p.id] = currentTime; 
                     schedule.push({ ...p, start: currentTime, duration: p.burst });
                     currentTime += p.burst;
                 });
             } 
             else if (algo === 'SJF') {
-                // Sort by burst time. JS sort is stable, so original order (P1, P2) is kept on tie.
                 processes.sort((a, b) => a.burst - b.burst);
                 processes.forEach(p => {
                     startTimes[p.id] = currentTime;
@@ -489,7 +500,7 @@
                 html += `
                     <div class="text-xs text-slate-600 mb-2 pb-2 border-b border-slate-200 bg-slate-50 p-2 rounded">
                         <strong>${currentLang === 'en' ? 'Formula' : '計算公式'} (Round Robin):</strong><br>
-                        \( WT = Completion Time - Arrival Time - Burst Time \)
+                        \\( WT = \\text{Completion Time} - \\text{Arrival Time} - \\text{Burst Time} \\)
                         <br><span class="text-slate-400">* Arrival Time = 0</span>
                     </div>
                 `;
@@ -504,8 +515,8 @@
                                 <span class="w-3 h-3 rounded-full ${p.color}"></span>
                                 <span class="font-bold text-slate-700">${p.id} ${wtLabel}:</span>
                             </div>
-                            <div class="text-slate-500 font-mono pl-5 text-xs">
-                                \( ${ct} - 0 - ${bt} = \)<span class="font-bold text-slate-800 bg-slate-100 px-1 rounded ml-1">${wt} ms</span>
+                            <div class="text-slate-500 pl-5 text-sm">
+                                \\( ${ct} - 0 - ${bt} = \\)<span class="font-bold text-slate-800 bg-slate-100 px-1 rounded ml-1">${wt} ms</span>
                             </div>
                         </div>
                     `;
@@ -514,7 +525,7 @@
                 html += `
                     <div class="text-xs text-slate-600 mb-2 pb-2 border-b border-slate-200 bg-slate-50 p-2 rounded">
                         <strong>${currentLang === 'en' ? 'Formula' : '計算公式'} (Non-Preemptive):</strong><br>
-                        \( WT = Start Time - Arrival Time \)
+                        \\( WT = \\text{Start Time} - \\text{Arrival Time} \\)
                         <br><span class="text-slate-400">* Arrival Time = 0</span>
                     </div>
                 `;
@@ -528,15 +539,15 @@
                                 <span class="w-3 h-3 rounded-full ${p.color}"></span>
                                 <span class="font-bold text-slate-700">${p.id} ${wtLabel}:</span>
                             </div>
-                            <div class="text-slate-500 font-mono pl-5 text-xs">
-                                \( ${st} - 0 = \)<span class="font-bold text-slate-800 bg-slate-100 px-1 rounded ml-1">${wt} ms</span>
+                            <div class="text-slate-500 pl-5 text-sm">
+                                \\( ${st} - 0 = \\)<span class="font-bold text-slate-800 bg-slate-100 px-1 rounded ml-1">${wt} ms</span>
                             </div>
                         </div>
                     `;
                 });
             }
 
-            // Average Calculation
+            // Average Calculation Displayed Clearly using Block Math
             let sumString = processes.map(p => waitingTimes[p.id]).join(' + ');
             const n = processes.length;
             const avgLabel = currentLang === 'en' ? 'Average Waiting Time' : '平均等待時間';
@@ -544,14 +555,18 @@
             html += `
                 <div class="mt-4 pt-3 border-t-2 border-dashed border-slate-200">
                     <div class="font-bold text-slate-700 mb-1">${avgLabel}:</div>
-                    <div class="math-block">
-                        \( \\frac{${sumString}}{${n}} \)<br>
-                        = <span class="text-blue-600 font-bold text-lg">${avgWT} ms</span>
+                    <div class="math-block text-center overflow-x-auto custom-scrollbar">
+                        \\[ \\frac{${sumString}}{${n}} = \\mathbf{${avgWT} \\text{ ms}} \\]
                     </div>
                 </div>
             </div>`;
 
             calcContainer.innerHTML = html;
+            
+            // Tell MathJax to typeset the newly injected math
+            if (window.MathJax) {
+                MathJax.typesetPromise([calcContainer]).catch((err) => console.log(err.message));
+            }
         }
 
         async function playSimulation() {
