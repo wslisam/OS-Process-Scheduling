@@ -1,6 +1,8 @@
 # 🖥️ 作業系統進程排程教學工具 (OS Process Scheduling Simulator)
 
-Welcome to the OS Process Scheduling Simulator! This interactive tool is designed to help you visualize and understand how an Operating System decides which process gets to use the CPU. 
+This interactive tool is designed to help you visualize and understand how an Operating System decides which process gets to use the CPU. 
+
+<img width="2495" height="1312" alt="image" src="https://github.com/user-attachments/assets/7191b612-318a-4646-8dcc-70823c0c03c7" />
 
 ## 🎯 What will you learn?
 By playing around with this tool, you'll be able to see exactly how different scheduling algorithms work in real-time. You'll learn:
