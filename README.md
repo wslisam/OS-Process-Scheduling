@@ -2,7 +2,8 @@
 
 This interactive tool is designed to help you visualize and understand how an Operating System decides which process gets to use the CPU. 
 
-<img width="2495" height="1312" alt="image" src="https://github.com/user-attachments/assets/7191b612-318a-4646-8dcc-70823c0c03c7" />
+<img width="2478" height="1283" alt="image" src="https://github.com/user-attachments/assets/bbc5a570-72e4-44dd-b154-d47a7a3e3976" />
+
 
 ## 🎯 What will you learn?
 By playing around with this tool, you'll be able to see exactly how different scheduling algorithms work in real-time. You'll learn:
